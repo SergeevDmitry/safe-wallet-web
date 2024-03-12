@@ -11,6 +11,8 @@ export enum PendingStatus {
   INDEXING = 'INDEXING',
 }
 
+const ActivePendingStates = [PendingStatus.RELAYING, PendingStatus.INDEXING, PendingStatus.PROCESSING]
+
 export type PendingTx = {
   chainId: string
   safeAddress: string
@@ -20,6 +22,7 @@ export type PendingTx = {
   signerAddress?: string
   taskId?: string
   submittedAt?: number
+  signerNonce?: number | null
 }
 
 export type PendingTxsState = {
@@ -59,4 +62,17 @@ export const selectPendingTxIdsBySafe = createSelector(
     Object.keys(pendingTxs).filter(
       (id) => pendingTxs[id].chainId === chainId && sameAddress(pendingTxs[id].safeAddress, safeAddress),
     ),
+)
+
+export const selectActivePendingTxsBySafe = createSelector(
+  [selectPendingTxs, (_: RootState, chainId: string, safeAddress: string) => [chainId, safeAddress]],
+  (pendingTxs, [chainId, safeAddress]) =>
+    Object.entries(pendingTxs)
+      .filter(
+        (pendingTx) =>
+          pendingTx[1].chainId === chainId &&
+          sameAddress(pendingTx[1].safeAddress, safeAddress) &&
+          ActivePendingStates.includes(pendingTx[1].status),
+      )
+      .map((entry) => ({ ...entry[1], txId: entry[0] })),
 )

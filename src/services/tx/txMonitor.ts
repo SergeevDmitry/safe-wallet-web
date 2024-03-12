@@ -17,18 +17,13 @@ export function _getRemainingTimeout(defaultTimeout: number, submittedAt?: numbe
 
 // Provider must be passed as an argument as it is undefined until initialised by `useInitWeb3`
 export const waitForTx = async (provider: JsonRpcProvider, txIds: string[], txHash: string, submittedAt?: number) => {
-  const TIMEOUT_MINUTES = 1
-  const remainingTimeout = _getRemainingTimeout(TIMEOUT_MINUTES, submittedAt)
-
   try {
     // Return receipt after 1 additional block was mined/validated or until timeout
     // https://docs.ethers.io/v5/single-page/#/v5/api/providers/provider/-%23-Provider-waitForTransaction
-    const receipt = await provider.waitForTransaction(txHash, 1, remainingTimeout)
+    const receipt = await provider.waitForTransaction(txHash, 1)
 
     if (!receipt) {
-      throw new Error(
-        `Transaction not processed in ${TIMEOUT_MINUTES} minute. Be aware that it might still be processed.`,
-      )
+      throw new Error(`Transaction could not be processed. Be aware that it might still be processed.`)
     }
 
     if (didRevert(receipt)) {

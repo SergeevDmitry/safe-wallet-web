@@ -36,7 +36,11 @@ interface TxEvents {
   [TxEvent.ONCHAIN_SIGNATURE_REQUESTED]: Id
   [TxEvent.ONCHAIN_SIGNATURE_SUCCESS]: Id
   [TxEvent.EXECUTING]: Id
-  [TxEvent.PROCESSING]: Id & { txHash: string }
+  [TxEvent.PROCESSING]: Id & {
+    txHash: string
+    signerAddress: string | undefined
+    signerNonce: number | null | undefined
+  }
   [TxEvent.PROCESSING_MODULE]: Id & { txHash: string }
   [TxEvent.PROCESSED]: Id & { safeAddress: string }
   [TxEvent.REVERTED]: Id & { error: Error }

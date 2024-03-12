@@ -146,6 +146,8 @@ export const dispatchTxExecution = async (
   const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
   const eventParams = { txId }
 
+  const signerAddress = await sdkUnchecked.getEthAdapter().getSignerAddress()
+
   // Execute the tx
   let result: TransactionResult | undefined
   try {
@@ -156,7 +158,7 @@ export const dispatchTxExecution = async (
     throw error
   }
 
-  txDispatch(TxEvent.PROCESSING, { ...eventParams, txHash: result.hash })
+  txDispatch(TxEvent.PROCESSING, { ...eventParams, txHash: result.hash, signerAddress, signerNonce: txOptions.nonce })
 
   const provider = getWeb3ReadOnly()
 
@@ -201,10 +203,10 @@ export const dispatchBatchExecution = async (
 
   let result: TransactionResult | undefined
   const txIds = txs.map((tx) => tx.txId)
-
+  let signerAddress: string | undefined = undefined
   try {
     const wallet = await assertWalletChain(onboard, chainId)
-
+    signerAddress = wallet.address
     const provider = createWeb3(wallet.provider)
     result = await multiSendContract.contract.connect(await provider.getSigner()).multiSend(multiSendTxData, overrides)
 
@@ -219,7 +221,13 @@ export const dispatchBatchExecution = async (
   }
 
   txIds.forEach((txId) => {
-    txDispatch(TxEvent.PROCESSING, { txId, txHash: result!.hash, groupKey })
+    txDispatch(TxEvent.PROCESSING, {
+      txId,
+      txHash: result!.hash,
+      groupKey,
+      signerNonce: overrides.nonce,
+      signerAddress,
+    })
   })
 
   const provider = getWeb3ReadOnly()
