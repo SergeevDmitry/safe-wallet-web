@@ -5,21 +5,28 @@ import useGasPrice from '@/hooks/useGasPrice'
 import useSafeAddress from '@/hooks/useSafeAddress'
 import useOnboard from '@/hooks/wallets/useOnboard'
 import useWallet from '@/hooks/wallets/useWallet'
-import { createExistingTx, dispatchTxExecution } from '@/services/tx/tx-sender'
-import { RocketLaunch } from '@mui/icons-material'
-import { Tooltip, IconButton } from '@mui/material'
+import { createExistingTx, dispatchTxSpeedUp } from '@/services/tx/tx-sender'
+import { Tooltip,  Button } from '@mui/material'
 import { type SafeTransaction } from '@safe-global/safe-core-sdk-types'
 import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { useEffect, useState } from 'react'
+import { useAppDispatch } from '@/store'
+import { showNotification } from '@/store/notificationsSlice'
 
 export const SpeedupTxButton = ({
   txDetails,
   signerAddress,
   signerNonce,
+  buttonProps = 'Speed up',
 }: {
   txDetails: TransactionDetails | undefined
   signerAddress: string | undefined
   signerNonce: number | undefined | null
+  buttonProps?: {
+    title: string
+    variant: 'contained' | 'outlined' | 'text'
+    disableElevation: boolean
+  }
 }) => {
   const wallet = useWallet()
   const onboard = useOnboard()
@@ -27,6 +34,7 @@ export const SpeedupTxButton = ({
   const chainId = useChainId()
   const safeAddress = useSafeAddress()
   const hasActions = signerAddress && signerNonce !== undefined && signerAddress === wallet?.address
+  const dispatch = useAppDispatch()
 
   const [gasPrice] = useGasPrice()
 
@@ -54,19 +62,24 @@ export const SpeedupTxButton = ({
       maxPriorityFeePerGas: (gasPrice.maxPriorityFeePerGas ?? 1n) * 2n,
     }
 
-    dispatchTxExecution(
-      safeTx,
-      {
-        nonce: signerNonce ?? undefined,
-        gasLimit: gasLimit?.toString(),
-        maxFeePerGas: spedUpGasPrice.maxFeePerGas.toString(),
-        maxPriorityFeePerGas: spedUpGasPrice.maxPriorityFeePerGas.toString(),
-      },
-      txDetails.txId,
-      onboard,
-      chainId,
-      safeAddress,
-    )
+    try {
+      await dispatchTxSpeedUp(
+        safeTx,
+        {
+          nonce: signerNonce ?? undefined,
+          gasLimit: gasLimit?.toString(),
+          maxFeePerGas: spedUpGasPrice.maxFeePerGas.toString(),
+          maxPriorityFeePerGas: spedUpGasPrice.maxPriorityFeePerGas.toString(),
+        },
+        txDetails.txId,
+        onboard,
+        chainId,
+        safeAddress,
+      )
+    } catch (e) {
+      console.log('catched error', e)
+      dispatch(showNotification({ message: 'Speed up failed', variant: 'error', detailedMessage: e.message }))
+    }
   }
 
   if (!hasActions) {
@@ -74,9 +87,15 @@ export const SpeedupTxButton = ({
   }
   return (
     <Tooltip title="Speed up transaction">
-      <IconButton color="primary" disabled={isDisabled} onClick={onSubmit}>
-        <RocketLaunch />
-      </IconButton>
+      <Button
+        color="primary"
+        disabled={isDisabled}
+        onClick={onSubmit}
+        variant={buttonProps.variant}
+        disableElevation={buttonProps.disableElevation}
+      >
+        {buttonProps.title ? buttonProps.title : 'Speed up'}
+      </Button>
     </Tooltip>
   )
 }

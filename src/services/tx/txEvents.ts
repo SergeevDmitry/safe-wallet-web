@@ -21,6 +21,8 @@ export enum TxEvent {
   SUCCESS = 'SUCCESS',
   SAFE_APPS_REQUEST = 'SAFE_APPS_REQUEST',
   BATCH_ADD = 'BATCH_ADD',
+  SPEEDUP_FAILED = 'SPEEDUP_FAILED',
+  SPEEDUP_SUCCESS = 'SPEEDUP_SUCCESS',
 }
 
 type Id = { txId: string; groupKey?: string } | { txId?: string; groupKey: string }
@@ -41,6 +43,7 @@ interface TxEvents {
     signerAddress: string | undefined
     signerNonce: number | null | undefined
   }
+  [TxEvent.SPEEDUP_FAILED]: Id & { error: Error }
   [TxEvent.PROCESSING_MODULE]: Id & { txHash: string }
   [TxEvent.PROCESSED]: Id & { safeAddress: string }
   [TxEvent.REVERTED]: Id & { error: Error }

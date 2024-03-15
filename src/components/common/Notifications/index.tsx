@@ -117,7 +117,7 @@ const PendingTx = ({
         </Typography>
         <Stack direction="row" spacing={2} alignItems="center" width="100%" justifyContent={'space-between'}>
           {txDetails?.txStatus && <TxStatusLabel txStatus={tx.status} seconds={counter ?? 0} />}
-          {tx.status === PendingStatus.PROCESSING && counter !== undefined && counter > 30 && (
+          {tx.status === PendingStatus.PROCESSING && counter !== undefined && counter > 5 && (
             <SpeedupTxButton signerAddress={tx.signerAddress} signerNonce={tx.signerNonce} txDetails={txDetails} />
           )}
         </Stack>
