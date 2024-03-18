@@ -1,4 +1,4 @@
-import useGasPrice, { getTotalFeeFormatted } from '@/hooks/useGasPrice'
+import useGasPrice from '@/hooks/useGasPrice'
 import useGasLimit from '@/hooks/useGasLimit'
 import ModalDialog from '@/components/common/ModalDialog'
 import DialogContent from '@mui/material/DialogContent'
@@ -6,7 +6,6 @@ import { Box, Button, SvgIcon, Tooltip, Typography } from '@mui/material'
 import RocketSpeedup from '@/public/images/common/ic-rocket-speedup.svg'
 import DialogActions from '@mui/material/DialogActions'
 import { useSafeTransaction } from '@/features/speedup/hooks/useSafeTransaction'
-import { useCalculateFee } from '@/features/speedup/hooks/useCalculateFee'
 import useWallet from '@/hooks/wallets/useWallet'
 import useOnboard from '@/hooks/wallets/useOnboard'
 import useChainId from '@/hooks/useChainId'
@@ -14,8 +13,7 @@ import useSafeAddress from '@/hooks/useSafeAddress'
 import { useAppDispatch } from '@/store'
 import { dispatchTxSpeedUp } from '@/services/tx/tx-sender'
 import { showNotification } from '@/store/notificationsSlice'
-import { useCurrentChain } from '@/hooks/useChains'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import GasParams from '@/components/tx/GasParams'
 import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { asError } from '@/services/exceptions/utils'
@@ -31,13 +29,11 @@ type Props = {
 export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress, signerNonce }: Props) => {
   const [gasPrice] = useGasPrice()
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false)
-  const { calculateFee } = useCalculateFee(gasPrice)
   const safeTx = useSafeTransaction(txDetails)
   const { gasLimit } = useGasLimit(safeTx)
 
   const wallet = useWallet()
   const onboard = useOnboard()
-  const chain = useCurrentChain()
   const chainId = useChainId()
   const safeAddress = useSafeAddress()
   const hasActions = signerAddress && signerNonce !== undefined && signerAddress === wallet?.address
@@ -45,10 +41,17 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
 
   const isDisabled = waitingForConfirmation || !wallet || !safeTx || !gasPrice || !txDetails || !onboard
 
-  const speedUpFee = calculateFee()
+  const speedUpFee = useMemo(
+    () => ({
+      ...gasPrice,
+      maxFeePerGas: BigInt(gasPrice?.maxFeePerGas ?? 10n) + BigInt(gasPrice?.maxPriorityFeePerGas ?? 1n),
+      maxPriorityFeePerGas: BigInt(gasPrice?.maxPriorityFeePerGas ?? 1n) * 2n,
+    }),
+    [gasPrice],
+  )
 
   const onSubmit = useCallback(async () => {
-    if (!wallet || !safeTx || !gasPrice || !txDetails || !onboard || !speedUpFee) {
+    if (!wallet || !safeTx || !gasPrice || !txDetails || !onboard) {
       return null
     }
 
@@ -77,7 +80,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
           message: 'Speed up failed',
           variant: 'error',
           detailedMessage: asError(e).message,
-          groupKey: txId,
+          groupKey: txDetails.txId,
         }),
       )
     }
@@ -92,7 +95,8 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
     chainId,
     safeAddress,
     dispatch,
-    calculateFee,
+    gasPrice,
+    handleClose,
   ])
 
   if (!hasActions) {

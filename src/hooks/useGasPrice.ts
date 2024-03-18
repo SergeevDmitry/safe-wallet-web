@@ -135,6 +135,7 @@ const getGasParameters = (
   feeData: FeeData | undefined,
   isEIP1559: boolean,
 ): GasFeeParams => {
+  console.log('feeData', feeData)
   if (!estimation) {
     return {
       maxFeePerGas: isEIP1559 ? feeData?.maxFeePerGas : feeData?.gasPrice,
@@ -180,6 +181,7 @@ const useGasPrice = (): AsyncResult<GasFeeParams> => {
   const provider = useWeb3ReadOnly()
   const isEIP1559 = !!chain && hasFeature(chain, FEATURES.EIP1559)
 
+  console.log('gasPriceConfigs', gasPriceConfigs, counter, provider, isEIP1559)
   const [gasPrice, gasPriceError, gasPriceLoading] = useAsync(
     async () => {
       const [gasEstimation, feeData] = await Promise.all([
@@ -200,6 +202,7 @@ const useGasPrice = (): AsyncResult<GasFeeParams> => {
 
   const isLoading = gasPriceLoading || (!gasPrice && !gasPriceError)
 
+  console.log('useGasprice', gasPrice, gasPriceError, isLoading)
   return [gasPrice, gasPriceError, isLoading]
 }
 

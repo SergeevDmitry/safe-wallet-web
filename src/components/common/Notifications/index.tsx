@@ -5,22 +5,17 @@ import { useAppDispatch, useAppSelector } from '@/store'
 import type { Notification } from '@/store/notificationsSlice'
 import { closeNotification, readNotification, selectNotifications } from '@/store/notificationsSlice'
 import type { AlertColor, CircularProgressProps, SnackbarCloseReason } from '@mui/material'
-import { Alert, Box, CircularProgress, Link, Snackbar, Stack, Typography } from '@mui/material'
+import { Alert, Box, CircularProgress, Link, Snackbar, Typography } from '@mui/material'
 import css from './styles.module.css'
 import NextLink from 'next/link'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { OVERVIEW_EVENTS } from '@/services/analytics/events/overview'
 import Track from '../Track'
 import { isRelativeUrl } from '@/utils/url'
-import { PendingStatus, PendingTx, selectActivePendingTxsBySafe } from '@/store/pendingTxsSlice'
+import { type PendingStatus } from '@/store/pendingTxsSlice'
 import useChainId from '@/hooks/useChainId'
 import useSafeAddress from '@/hooks/useSafeAddress'
-import { getTransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
-import useAsync from '@/hooks/useAsync'
-import { isMultisigDetailedExecutionInfo } from '@/utils/transaction-guards'
 import { STATUS_LABELS } from '@/hooks/useTransactionStatus'
-import { useCounter } from './useCounter'
-import { SpeedupTxButton } from './SpeedupTxButton'
 
 const toastStyle = { position: 'static', margin: 1 }
 
@@ -93,39 +88,6 @@ export const NotificationLink = ({
   )
 }
 
-const PendingTx = ({
-  tx,
-  onClose,
-}: {
-  onClose: () => void
-} & { tx: PendingTx & { txId: string } }) => {
-  const [txDetails, txDetailsLoading, txDetailError] = useAsync(
-    () => getTransactionDetails(tx.chainId, tx.txId),
-    [tx.chainId, tx.txId],
-  )
-
-  const counter = useCounter(tx.submittedAt)
-
-  const detailedExecutionInfo = txDetails?.detailedExecutionInfo
-  const txNonce = isMultisigDetailedExecutionInfo(detailedExecutionInfo) ? detailedExecutionInfo.nonce : undefined
-
-  return (
-    <Snackbar open onClose={onClose} sx={toastStyle}>
-      <Alert severity="info" onClose={onClose} elevation={1} sx={{ width: '420px' }}>
-        <Typography variant="body2" fontWeight="700">
-          {txDetails?.txInfo.humanDescription ?? 'Transaction'} {txNonce !== undefined && `#${txNonce}`}
-        </Typography>
-        <Stack direction="row" spacing={2} alignItems="center" width="100%" justifyContent={'space-between'}>
-          {txDetails?.txStatus && <TxStatusLabel txStatus={tx.status} seconds={counter ?? 0} />}
-          {tx.status === PendingStatus.PROCESSING && counter !== undefined && counter > 5 && (
-            <SpeedupTxButton signerAddress={tx.signerAddress} signerNonce={tx.signerNonce} txDetails={txDetails} />
-          )}
-        </Stack>
-      </Alert>
-    </Snackbar>
-  )
-}
-
 const Toast = ({
   title,
   message,
@@ -185,11 +147,10 @@ const Notifications = (): ReactElement | null => {
   const dispatch = useAppDispatch()
   const chainId = useChainId()
   const safeAddress = useSafeAddress()
-  const pendingTxs = useAppSelector((state) => selectActivePendingTxsBySafe(state, chainId, safeAddress))
 
   const visible = getVisibleNotifications(notifications)
 
-  const visibleItems = visible.length + pendingTxs.length
+  const visibleItems = visible.length
 
   const handleClose = useCallback(
     (item: Notification) => {
@@ -218,11 +179,6 @@ const Notifications = (): ReactElement | null => {
       {visible.map((item) => (
         <div className={css.row} key={item.id}>
           <Toast {...item} onClose={() => handleClose(item)} />
-        </div>
-      ))}
-      {pendingTxs.map((pendingTx) => (
-        <div className={css.row} key={pendingTx.txId}>
-          <PendingTx tx={pendingTx} onClose={() => {}} />
         </div>
       ))}
     </div>

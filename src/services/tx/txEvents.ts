@@ -22,7 +22,6 @@ export enum TxEvent {
   SAFE_APPS_REQUEST = 'SAFE_APPS_REQUEST',
   BATCH_ADD = 'BATCH_ADD',
   SPEEDUP_FAILED = 'SPEEDUP_FAILED',
-  SPEEDUP_SUCCESS = 'SPEEDUP_SUCCESS',
 }
 
 type Id = { txId: string; groupKey?: string } | { txId?: string; groupKey: string }

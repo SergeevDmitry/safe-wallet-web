@@ -186,7 +186,6 @@ export const dispatchTxSpeedUp = async (
 
   console.log('result hash', result.hash)
   return result.hash
-
 }
 
 /**
