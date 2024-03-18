@@ -13,11 +13,13 @@ type Props = {
   modalTrigger: 'alertBox' | 'alertButton'
 }
 
+const SPEED_UP_THRESHOLD_IN_SECONDS = 15
+
 export function SpeedUpMonitor({ txDetails, txId, pendingTx, modalTrigger = 'alertBox' }: Props) {
   const [openSpeedUpModal, setOpenSpeedUpModal] = useState(false)
   const counter = useCounter(pendingTx?.submittedAt)
 
-  if (!counter || counter < 5) {
+  if (!counter || counter < SPEED_UP_THRESHOLD_IN_SECONDS) {
     return null
   }
 

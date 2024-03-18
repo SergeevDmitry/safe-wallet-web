@@ -8,11 +8,9 @@ import { PendingStatus } from '@/store/pendingTxsSlice'
 const StatusStepper = ({ status, txHash }: { status: PendingStatus; txHash?: string }) => {
   const { safeAddress } = useSafeInfo()
 
-  console.log('status', status)
   const isProcessing = status === PendingStatus.PROCESSING || status === PendingStatus.INDEXING || status === undefined
   const isProcessed = status === PendingStatus.INDEXING || status === undefined
   const isSuccess = status === undefined
-  // const isSpeedUpFailed  = status === PendingStatus.SPEEDUP_FAILED
 
   return (
     <Stepper orientation="vertical" nonLinear connector={<StepConnector className={css.connector} />}>

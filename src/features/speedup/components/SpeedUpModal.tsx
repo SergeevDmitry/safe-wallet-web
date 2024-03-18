@@ -139,7 +139,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
 
         <Tooltip title="Speed up transaction">
           <Button color="primary" disabled={isDisabled} onClick={onSubmit} variant={'contained'} disableElevation>
-            Confirm
+            {isDisabled ? 'Waiting on confirmation in wallet...' : 'Confirm'}
           </Button>
         </Tooltip>
       </DialogActions>

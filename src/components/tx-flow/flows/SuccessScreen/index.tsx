@@ -1,7 +1,6 @@
 import StatusStepper from './StatusStepper'
-import { Box, Button, Container, Divider, Paper, Typography } from '@mui/material'
+import { Button, Container, Divider, Paper } from '@mui/material'
 import classnames from 'classnames'
-import classNames from 'classnames'
 import Link from 'next/link'
 import css from './styles.module.css'
 import { useAppSelector } from '@/store'
@@ -12,11 +11,13 @@ import { useCurrentChain } from '@/hooks/useChains'
 import { TxEvent, txSubscribe } from '@/services/tx/txEvents'
 import useSafeInfo from '@/hooks/useSafeInfo'
 import { TxModalContext } from '../..'
-import { isTimeoutError } from '@/utils/ethers-utils'
 import LoadingSpinner, { SpinnerStatus } from '@/components/new-safe/create/steps/StatusStep/LoadingSpinner'
 import useAsync from '@/hooks/useAsync'
 import { getTransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
-import { SpeedUpMonitor } from '@/features/speedup/components/SpeedUpMonitor'
+import { ProcessingStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/ProcessingStatus'
+import { IndexingStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/IndexingStatus'
+import { DefaultStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/DefaultStatus'
+
 
 const SuccessScreen = ({ txId }: { txId: string }) => {
   const [localTxHash, setLocalTxHash] = useState<string>()
@@ -57,6 +58,19 @@ const SuccessScreen = ({ txId }: { txId: string }) => {
   const isSuccess = status === undefined
   const spinnerStatus = error ? SpinnerStatus.ERROR : isSuccess ? SpinnerStatus.SUCCESS : SpinnerStatus.PROCESSING
 
+  let StatusComponent
+  switch (status) {
+    case PendingStatus.PROCESSING:
+    case PendingStatus.RELAYING:
+      StatusComponent = <ProcessingStatus txDetails={txDetails} txId={txId} pendingTx={pendingTx} />
+      break
+    case PendingStatus.INDEXING:
+      StatusComponent = <IndexingStatus />
+      break
+    default:
+      StatusComponent = <DefaultStatus error={error} />
+  }
+
   return (
     <Container
       component={Paper}
@@ -69,52 +83,7 @@ const SuccessScreen = ({ txId }: { txId: string }) => {
     >
       <div className={css.row}>
         <LoadingSpinner status={spinnerStatus} />
-        {(status == PendingStatus.PROCESSING || status == PendingStatus.RELAYING) && (
-          <>
-            <Box paddingX={3} mt={3}>
-              <Typography data-testid="transaction-status" variant="h6" marginTop={2} fontWeight={700}>
-                Transaction is now processing
-              </Typography>
-              <Typography variant="body2" mb={3}>
-                {' '}
-                The transaction was confirmed and is now being processed.
-              </Typography>
-              {status == PendingStatus.PROCESSING && (
-                <Box>
-                  <SpeedUpMonitor txDetails={txDetails} txId={txId} pendingTx={pendingTx} modalTrigger={'alertBox'} />
-                </Box>
-              )}
-            </Box>
-          </>
-        )}
-        {status == PendingStatus.INDEXING && (
-          <>
-            <Box paddingX={3} mt={3}>
-              <Typography data-testid="transaction-status" variant="h6" marginTop={2} fontWeight={700}>
-                Transaction was processed
-              </Typography>
-            </Box>
-            <Box className={classNames(css.instructions, error ? css.errorBg : css.infoBg)}>
-              <Typography variant="body2"> It is now being indexed.</Typography>
-            </Box>
-          </>
-        )}
-        {![PendingStatus.PROCESSING, PendingStatus.RELAYING, PendingStatus.INDEXING].includes(status) && (
-          <>
-            <Box paddingX={3} mt={3}>
-              <Typography data-testid="transaction-status" variant="h6" marginTop={2} fontWeight={700}>
-                {error ? 'Transaction failed' : 'Transaction was successful'}
-              </Typography>
-            </Box>
-            {error && (
-              <Box className={classNames(css.instructions, error ? css.errorBg : css.infoBg)}>
-                <Typography variant="body2">
-                  {error ? (isTimeoutError(error) ? 'Transaction timed out' : error.message) : ''}
-                </Typography>
-              </Box>
-            )}
-          </>
-        )}
+        {StatusComponent}
       </div>
 
       {!error && (
