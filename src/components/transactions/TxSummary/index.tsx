@@ -12,10 +12,10 @@ import { isTrustedTx } from '@/utils/transactions'
 import UntrustedTxWarning from '../UntrustedTxWarning'
 import QueueActions from './QueueActions'
 import useIsPending from '@/hooks/useIsPending'
-import TxStatusLabel from '../TxStatusLabel'
 import TxConfirmations from '../TxConfirmations'
 import { useHasFeature } from '@/hooks/useChains'
 import { FEATURES } from '@/utils/chains'
+import { PendingActions } from '@/components/transactions/TxSummary/PendingActions'
 
 type TxSummaryProps = {
   isGrouped?: boolean
@@ -75,7 +75,7 @@ const TxSummary = ({ item, isGrouped }: TxSummaryProps): ReactElement => {
         </Box>
       )}
 
-      <Box gridArea="status">{isQueue && !isPending ? <QueueActions tx={tx} /> : <TxStatusLabel tx={tx} />}</Box>
+      <Box gridArea="status">{isQueue && !isPending ? <QueueActions tx={tx} /> : <PendingActions tx={tx} />}</Box>
     </Box>
   )
 }
