@@ -18,7 +18,6 @@ import { ProcessingStatus } from '@/components/tx-flow/flows/SuccessScreen/statu
 import { IndexingStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/IndexingStatus'
 import { DefaultStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/DefaultStatus'
 
-
 const SuccessScreen = ({ txId }: { txId: string }) => {
   const [localTxHash, setLocalTxHash] = useState<string>()
   const [error, setError] = useState<Error>()
