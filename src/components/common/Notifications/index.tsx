@@ -4,60 +4,18 @@ import groupBy from 'lodash/groupBy'
 import { useAppDispatch, useAppSelector } from '@/store'
 import type { Notification } from '@/store/notificationsSlice'
 import { closeNotification, readNotification, selectNotifications } from '@/store/notificationsSlice'
-import type { AlertColor, CircularProgressProps, SnackbarCloseReason } from '@mui/material'
-import { Alert, Box, CircularProgress, Link, Snackbar, Typography } from '@mui/material'
+import type { AlertColor, SnackbarCloseReason } from '@mui/material'
+import { Alert, Link, Snackbar, Typography } from '@mui/material'
 import css from './styles.module.css'
 import NextLink from 'next/link'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { OVERVIEW_EVENTS } from '@/services/analytics/events/overview'
 import Track from '../Track'
 import { isRelativeUrl } from '@/utils/url'
-import { type PendingStatus } from '@/store/pendingTxsSlice'
 import useChainId from '@/hooks/useChainId'
 import useSafeAddress from '@/hooks/useSafeAddress'
-import { STATUS_LABELS } from '@/hooks/useTransactionStatus'
 
 const toastStyle = { position: 'static', margin: 1 }
-
-const CircularProgressWithLabel = (props: CircularProgressProps & { value: number }) => {
-  return (
-    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-      <CircularProgress {...props} />
-      <Box
-        sx={{
-          top: 0,
-          left: 0,
-          bottom: 0,
-          right: 0,
-          position: 'absolute',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Typography variant="caption" component="div">{`
-          ${props.value}s`}</Typography>
-      </Box>
-    </Box>
-  )
-}
-
-const TxStatusLabel = ({ txStatus, seconds }: { txStatus: PendingStatus; seconds: number }) => {
-  const statusLabel = STATUS_LABELS[txStatus]
-  return (
-    <Typography
-      variant="caption"
-      fontWeight="bold"
-      display="flex"
-      alignItems="center"
-      gap={1}
-      color={({ palette }) => (seconds > 30 ? palette.warning.light : palette.primary.main)}
-    >
-      <CircularProgressWithLabel size={32} color="inherit" value={seconds} />
-      {statusLabel}
-    </Typography>
-  )
-}
 
 export const NotificationLink = ({
   link,
