@@ -16,13 +16,13 @@ export const PendingActions = ({ tx }: { tx: TransactionSummary }) => {
   }, [pendingTx, tx.id])
 
   return (
-    <Box my={-1} mr={1} display={'flex'} flexDirection={'row'} alignItems={'center'} justifyContent={'center'}>
+    <Box my={-1} mr={3} display={'flex'} flexDirection={'row'} alignItems={'center'} justifyContent={'flex-end'}>
+      <TxStatusLabel tx={tx} />
       {pendingTx && (
-        <Box mr={2}>
+        <Box ml={2}>
           <SpeedUpMonitor txDetails={txDetails} txId={tx.id} pendingTx={pendingTx} modalTrigger={'alertButton'} />
         </Box>
       )}
-      <TxStatusLabel tx={tx} />
     </Box>
   )
 }
