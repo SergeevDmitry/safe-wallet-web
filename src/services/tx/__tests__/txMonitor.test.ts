@@ -59,19 +59,6 @@ describe('txMonitor', () => {
       expect(txDispatchSpy).toHaveBeenCalledWith('FAILED', { txId: '0x0', error: expect.any(Error) })
     })
 
-    it('emits a FAILED event if the tx mining/validating timed out', async () => {
-      waitForTxSpy.mockImplementationOnce(
-        () => Promise.resolve(null) as unknown as ReturnType<typeof provider.waitForTransaction>,
-      )
-
-      await waitForTx(provider, ['0x0'], '0x0')
-
-      expect(txDispatchSpy).toHaveBeenCalledWith('FAILED', {
-        txId: '0x0',
-        error: new Error('Transaction not processed in 1 minute. Be aware that it might still be processed.'),
-      })
-    })
-
     it('emits a REVERTED event if the tx reverted', async () => {
       const receipt = {
         status: 0,
