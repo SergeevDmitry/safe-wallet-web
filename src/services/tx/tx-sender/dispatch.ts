@@ -132,14 +132,15 @@ export const dispatchOnChainSigning = async (
   // signed so we don't return it
 }
 
-export const dispatchTxSpeedUp = async (
+const executeTransaction = async (
   safeTx: SafeTransaction,
   txOptions: TransactionOptions,
   txId: string,
   onboard: OnboardAPI,
   chainId: SafeInfo['chainId'],
   safeAddress: string,
-) => {
+  errorEvent: TxEvent,
+): Promise<string> => {
   const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
   const eventParams = { txId }
 
@@ -149,9 +150,10 @@ export const dispatchTxSpeedUp = async (
   let result: TransactionResult | undefined
   try {
     result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
+    console.log('result', result)
     txDispatch(TxEvent.EXECUTING, eventParams)
   } catch (error) {
-    txDispatch(TxEvent.SPEEDUP_FAILED, { ...eventParams, error: asError(error) })
+    txDispatch(errorEvent, { ...eventParams, error: asError(error) })
     throw error
   }
 
@@ -184,8 +186,18 @@ export const dispatchTxSpeedUp = async (
     provider ? waitForTx(provider, [txId], result.hash) : undefined,
   ])
 
-  console.log('result hash', result.hash)
   return result.hash
+}
+
+export const dispatchTxSpeedUp = async (
+  safeTx: SafeTransaction,
+  txOptions: TransactionOptions,
+  txId: string,
+  onboard: OnboardAPI,
+  chainId: SafeInfo['chainId'],
+  safeAddress: string,
+) => {
+  return executeTransaction(safeTx, txOptions, txId, onboard, chainId, safeAddress, TxEvent.SPEEDUP_FAILED)
 }
 
 /**
@@ -199,52 +211,7 @@ export const dispatchTxExecution = async (
   chainId: SafeInfo['chainId'],
   safeAddress: string,
 ): Promise<string> => {
-  const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
-  const eventParams = { txId }
-
-  const signerAddress = await sdkUnchecked.getEthAdapter().getSignerAddress()
-
-  // Execute the tx
-  let result: TransactionResult | undefined
-  try {
-    result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
-    txDispatch(TxEvent.EXECUTING, eventParams)
-  } catch (error) {
-    txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
-    throw error
-  }
-
-  txDispatch(TxEvent.PROCESSING, { ...eventParams, txHash: result.hash, signerAddress, signerNonce: txOptions.nonce })
-
-  const provider = getWeb3ReadOnly()
-
-  // Asynchronously watch the tx to be mined/validated
-  Promise.race([
-    result.transactionResponse
-      ?.wait()
-      .then((receipt) => {
-        if (receipt === null) {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: new Error('No transaction receipt found') })
-        } else if (didRevert(receipt)) {
-          txDispatch(TxEvent.REVERTED, { ...eventParams, error: new Error('Transaction reverted by EVM') })
-        } else {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        }
-      })
-      .catch((err) => {
-        const error = err as EthersError
-
-        if (didReprice(error)) {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        } else {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
-        }
-      }),
-    provider ? waitForTx(provider, [txId], result.hash) : undefined,
-  ])
-
-  console.log('result hash', result.hash)
-  return result.hash
+  return executeTransaction(safeTx, txOptions, txId, onboard, chainId, safeAddress, TxEvent.FAILED)
 }
 
 export const dispatchBatchExecution = async (

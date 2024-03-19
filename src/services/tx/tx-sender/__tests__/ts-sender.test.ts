@@ -35,6 +35,8 @@ import { generatePreValidatedSignature } from '@safe-global/protocol-kit/dist/sr
 import { createMockSafeTransaction } from '@/tests/transactions'
 import type { JsonRpcSigner } from 'ethers'
 
+const SIGNER_ADDRESS = '0x0000000000000000000000000000000000000abc'
+const TX_HASH = '0x1234567890'
 // Mock getTransactionDetails
 jest.mock('@safe-global/safe-gateway-typescript-sdk', () => ({
   getTransactionDetails: jest.fn(),
@@ -104,6 +106,8 @@ const mockOnboard = {
   },
 } as unknown as OnboardAPI
 
+// result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
+// const signerAddress = await sdkUnchecked.getEthAdapter().getSignerAddress()
 // Mock Safe SDK
 const mockSafeSDK = {
   createTransaction: jest.fn(() => ({
@@ -119,6 +123,7 @@ const mockSafeSDK = {
   signTransaction: jest.fn(),
   executeTransaction: jest.fn(() =>
     Promise.resolve({
+      hash: TX_HASH,
       transactionResponse: {
         wait: jest.fn(() => Promise.resolve({})),
       },
@@ -129,6 +134,9 @@ const mockSafeSDK = {
   getAddress: jest.fn(() => '0x0000000000000000000000000000000000000123'),
   getTransactionHash: jest.fn(() => Promise.resolve('0x1234567890')),
   getContractVersion: jest.fn(() => Promise.resolve('1.1.1')),
+  getEthAdapter: jest.fn(() => ({
+    getSignerAddress: jest.fn(() => Promise.resolve(SIGNER_ADDRESS)),
+  })),
 } as unknown as Safe
 
 describe('txSender', () => {
@@ -475,7 +483,12 @@ describe('txSender', () => {
 
       expect(mockSafeSDK.executeTransaction).toHaveBeenCalled()
       expect(txEvents.txDispatch).toHaveBeenCalledWith('EXECUTING', { txId })
-      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', { txId })
+      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', {
+        txId,
+        signerAddress: SIGNER_ADDRESS,
+        signerNonce: undefined,
+        txHash: TX_HASH,
+      })
       expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSED', { txId, safeAddress })
     })
 
@@ -501,6 +514,7 @@ describe('txSender', () => {
     it('should revert a tx', async () => {
       jest.spyOn(mockSafeSDK, 'executeTransaction').mockImplementationOnce(() =>
         Promise.resolve({
+          hash: TX_HASH,
           transactionResponse: {
             wait: jest.fn(() => Promise.resolve({ status: 0 })),
           },
@@ -520,7 +534,12 @@ describe('txSender', () => {
 
       expect(mockSafeSDK.executeTransaction).toHaveBeenCalled()
       expect(txEvents.txDispatch).toHaveBeenCalledWith('EXECUTING', { txId })
-      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', { txId })
+      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', {
+        txId,
+        signerAddress: SIGNER_ADDRESS,
+        signerNonce: undefined,
+        txHash: TX_HASH,
+      })
       expect(txEvents.txDispatch).toHaveBeenCalledWith('REVERTED', {
         txId,
         error: new Error('Transaction reverted by EVM'),
@@ -528,8 +547,10 @@ describe('txSender', () => {
     })
 
     it('should cancel a tx', async () => {
+      const txHash = '0x1234567890'
       jest.spyOn(mockSafeSDK, 'executeTransaction').mockImplementationOnce(() =>
         Promise.resolve({
+          hash: txHash,
           transactionResponse: {
             wait: jest.fn(() => Promise.reject({ code: 'TRANSACTION_REPLACED', reason: 'cancelled' })),
           },
@@ -549,7 +570,12 @@ describe('txSender', () => {
 
       expect(mockSafeSDK.executeTransaction).toHaveBeenCalled()
       expect(txEvents.txDispatch).toHaveBeenCalledWith('EXECUTING', { txId })
-      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', { txId })
+      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', {
+        txId,
+        signerAddress: SIGNER_ADDRESS,
+        signerNonce: undefined,
+        txHash: txHash,
+      })
 
       await waitFor(() =>
         expect(txEvents.txDispatch).toHaveBeenCalledWith('FAILED', {
@@ -562,6 +588,7 @@ describe('txSender', () => {
     it('should reprice a tx', async () => {
       jest.spyOn(mockSafeSDK, 'executeTransaction').mockImplementationOnce(() =>
         Promise.resolve({
+          hash: TX_HASH,
           transactionResponse: {
             wait: jest.fn(() => Promise.reject({ code: 'TRANSACTION_REPLACED', reason: 'repriced' })),
           },
@@ -580,8 +607,15 @@ describe('txSender', () => {
       await dispatchTxExecution(safeTx, {}, txId, mockOnboard, '5', '0x123')
 
       expect(mockSafeSDK.executeTransaction).toHaveBeenCalled()
-      expect(txEvents.txDispatch).toHaveBeenCalledWith('EXECUTING', { txId })
-      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', { txId })
+      expect(txEvents.txDispatch).toHaveBeenCalledWith('EXECUTING', {
+        txId,
+      })
+      expect(txEvents.txDispatch).toHaveBeenCalledWith('PROCESSING', {
+        txId,
+        signerAddress: SIGNER_ADDRESS,
+        signerNonce: undefined,
+        txHash: TX_HASH,
+      })
       expect(txEvents.txDispatch).not.toHaveBeenCalledWith('FAILED')
     })
   })
