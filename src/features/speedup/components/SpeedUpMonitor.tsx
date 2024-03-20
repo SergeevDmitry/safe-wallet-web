@@ -13,14 +13,14 @@ type Props = {
   modalTrigger: 'alertBox' | 'alertButton'
 }
 
-const SPEED_UP_THRESHOLD_IN_SECONDS = 15
+const SPEED_UP_THRESHOLD_IN_SECONDS = 5
 
 export function SpeedUpMonitor({ txDetails, txId, pendingTx, modalTrigger = 'alertBox' }: Props) {
   const [openSpeedUpModal, setOpenSpeedUpModal] = useState(false)
   const counter = useCounter(pendingTx?.submittedAt)
 
   // We only care about processing txs, for everything else we don't show the speed up button
-  if (!pendingTx || pendingTx.status !== PendingStatus.PROCESSING) {
+  if (!pendingTx || pendingTx.status !== PendingStatus.PROCESSING || !pendingTx.txHash) {
     return null
   }
 
@@ -36,6 +36,7 @@ export function SpeedUpMonitor({ txDetails, txId, pendingTx, modalTrigger = 'ale
           handleClose={() => setOpenSpeedUpModal(false)}
           txDetails={txDetails}
           txId={txId}
+          txHash={pendingTx.txHash}
           signerAddress={pendingTx.signerAddress}
           signerNonce={pendingTx.signerNonce}
         />

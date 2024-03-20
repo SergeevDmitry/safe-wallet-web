@@ -19,7 +19,7 @@ import {
   assertWalletChain,
   tryOffChainTxSigning,
 } from './sdk'
-import { createWeb3, getWeb3ReadOnly } from '@/hooks/wallets/web3'
+import { createWeb3, getUserNonce, getWeb3ReadOnly } from '@/hooks/wallets/web3'
 import { type OnboardAPI } from '@web3-onboard/core'
 import { asError } from '@/services/exceptions/utils'
 import chains from '@/config/chains'
@@ -143,21 +143,26 @@ const executeTransaction = async (
 ): Promise<string> => {
   const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
   const eventParams = { txId }
+  const wallet = await assertWalletChain(onboard, chainId)
 
-  const signerAddress = await sdkUnchecked.getEthAdapter().getSignerAddress()
+  const signerNonce = txOptions.nonce ?? (await getUserNonce(wallet.address))
 
   // Execute the tx
   let result: TransactionResult | undefined
   try {
     result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
-    console.log('result', result)
     txDispatch(TxEvent.EXECUTING, eventParams)
   } catch (error) {
     txDispatch(errorEvent, { ...eventParams, error: asError(error) })
     throw error
   }
 
-  txDispatch(TxEvent.PROCESSING, { ...eventParams, txHash: result.hash, signerAddress, signerNonce: txOptions.nonce })
+  txDispatch(TxEvent.PROCESSING, {
+    ...eventParams,
+    txHash: result.hash,
+    signerAddress: wallet.address,
+    signerNonce,
+  })
 
   const provider = getWeb3ReadOnly()
 
@@ -183,7 +188,7 @@ const executeTransaction = async (
           txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
         }
       }),
-    provider ? waitForTx(provider, [txId], result.hash) : undefined,
+    provider ? waitForTx(provider, [txId], result.hash, wallet.address, signerNonce) : undefined,
   ])
 
   return result.hash
@@ -228,9 +233,13 @@ export const dispatchBatchExecution = async (
   let result: TransactionResult | undefined
   const txIds = txs.map((tx) => tx.txId)
   let signerAddress: string | undefined = undefined
+  let signerNonce = overrides.nonce
   try {
     const wallet = await assertWalletChain(onboard, chainId)
     signerAddress = wallet.address
+    if (signerNonce === undefined || signerNonce === null) {
+      signerNonce = await getUserNonce(signerAddress)
+    }
     const provider = createWeb3(wallet.provider)
     result = await multiSendContract.contract.connect(await provider.getSigner()).multiSend(multiSendTxData, overrides)
 
@@ -249,7 +258,7 @@ export const dispatchBatchExecution = async (
       txId,
       txHash: result!.hash,
       groupKey,
-      signerNonce: overrides.nonce,
+      signerNonce,
       signerAddress,
     })
   })
@@ -306,7 +315,7 @@ export const dispatchBatchExecution = async (
           })
         }
       }),
-    provider ? waitForTx(provider, txIds, result.hash) : undefined,
+    provider ? waitForTx(provider, txIds, result.hash, signerAddress, signerNonce) : undefined,
   ])
 
   return result!.hash

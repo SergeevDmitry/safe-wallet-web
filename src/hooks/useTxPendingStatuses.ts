@@ -3,7 +3,7 @@ import { clearPendingTx, setPendingTx, selectPendingTxs, PendingStatus } from '@
 import { useEffect, useMemo, useRef } from 'react'
 import { TxEvent, txSubscribe } from '@/services/tx/txEvents'
 import useChainId from './useChainId'
-import { waitForRelayedTx, waitForTx } from '@/services/tx/txMonitor'
+import { cancelWaitForTx, waitForRelayedTx, waitForTx } from '@/services/tx/txMonitor'
 import { useWeb3ReadOnly } from '@/hooks/wallets/web3'
 import useTxHistory from './useTxHistory'
 import { isTransactionListItem } from '@/utils/transaction-guards'
@@ -36,7 +36,10 @@ const useTxMonitor = (): void => {
       return
     }
 
-    for (const [txId, { txHash, status, taskId, safeAddress, submittedAt }] of pendingTxEntriesOnChain) {
+    for (const [
+      txId,
+      { txHash, status, taskId, safeAddress, signerNonce, signerAddress, submittedAt },
+    ] of pendingTxEntriesOnChain) {
       const isProcessing = status === PendingStatus.PROCESSING && txHash !== undefined
       const isMonitored = monitoredTxs.current[txId]
       const isRelaying = status === PendingStatus.RELAYING && taskId !== undefined
@@ -47,8 +50,8 @@ const useTxMonitor = (): void => {
 
       monitoredTxs.current[txId] = true
 
-      if (isProcessing) {
-        waitForTx(provider, [txId], txHash, submittedAt)
+      if (isProcessing && signerNonce && signerAddress) {
+        waitForTx(provider, [txId], txHash, signerAddress, signerNonce, submittedAt)
         continue
       }
 
@@ -83,6 +86,9 @@ const useTxPendingStatuses = (): void => {
         // Clear the pending status if the tx is no longer pending
         const isFinished = status === null
         if (isFinished) {
+          if ('txHash' in detail && detail.txHash) {
+            cancelWaitForTx(detail.txHash)
+          }
           dispatch(clearPendingTx({ txId }))
           return
         }

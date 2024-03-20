@@ -43,12 +43,12 @@ const SuccessScreen = ({ txId }: { txId: string }) => {
   useEffect(() => {
     const unsubFns: Array<() => void> = ([TxEvent.FAILED, TxEvent.REVERTED] as const).map((event) =>
       txSubscribe(event, (detail) => {
-        if (detail.txId === txId) setError(detail.error)
+        if (detail.txId === txId && pendingTx) setError(detail.error)
       }),
     )
 
     return () => unsubFns.forEach((unsubscribe) => unsubscribe())
-  }, [txId])
+  }, [txId, pendingTx])
 
   const onClose = useCallback(() => {
     setTxFlow(undefined)

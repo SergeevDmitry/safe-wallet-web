@@ -48,7 +48,7 @@ interface TxEvents {
   [TxEvent.REVERTED]: Id & { error: Error }
   [TxEvent.RELAYING]: Id & { taskId: string }
   [TxEvent.FAILED]: Id & { error: Error }
-  [TxEvent.SUCCESS]: Id
+  [TxEvent.SUCCESS]: Id & { txHash?: string }
   [TxEvent.SAFE_APPS_REQUEST]: { safeAppRequestId: RequestId; safeTxHash: string; txId?: string }
   [TxEvent.BATCH_ADD]: Id
 }

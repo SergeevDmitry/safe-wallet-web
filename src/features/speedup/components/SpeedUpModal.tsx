@@ -18,16 +18,18 @@ import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sd
 import { asError } from '@/services/exceptions/utils'
 import { getTxOptions } from '@/utils/transactions'
 import { useCurrentChain } from '@/hooks/useChains'
+import { cancelWaitForTx } from '@/services/tx/txMonitor'
 
 type Props = {
   open: boolean
   handleClose: () => void
   txDetails: undefined | TransactionDetails
   txId: string
+  txHash: string
   signerAddress: string | undefined
   signerNonce: number | undefined | null
 }
-export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress, signerNonce }: Props) => {
+export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signerAddress, signerNonce }: Props) => {
   const [speedUpFee] = useGasPrice(true)
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false)
   const safeTx = useSafeTransaction(txDetails)
@@ -50,7 +52,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
     const txOptions = getTxOptions(
       {
         ...speedUpFee,
-        nonce: signerNonce ?? undefined,
+        userNonce: signerNonce ?? undefined,
         gasLimit: gasLimit,
       },
       chainInfo,
@@ -59,6 +61,10 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
     try {
       setWaitingForConfirmation(true)
       await dispatchTxSpeedUp(safeTx, txOptions, txDetails.txId, onboard, chainInfo?.chainId, safeAddress)
+
+      if (txHash) {
+        cancelWaitForTx(txHash)
+      }
 
       setWaitingForConfirmation(false)
       handleClose()

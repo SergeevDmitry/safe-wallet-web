@@ -6,7 +6,7 @@ import { POLLING_INTERVAL } from '@/config/constants'
 import { Errors, logError } from '@/services/exceptions'
 import { SafeCreationStatus } from '@/components/new-safe/create/steps/StatusStep/useSafeCreation'
 import { asError } from '../exceptions/utils'
-import { type JsonRpcProvider } from 'ethers'
+import { type TransactionReceipt, type JsonRpcProvider } from 'ethers'
 
 export function _getRemainingTimeout(defaultTimeout: number, submittedAt?: number) {
   const timeoutInMs = defaultTimeout * 60_000
@@ -15,15 +15,60 @@ export function _getRemainingTimeout(defaultTimeout: number, submittedAt?: numbe
   return Math.max(timeoutInMs - timeSinceSubmission, 1)
 }
 
+const unsubFunctions: Record<string, () => void> = {}
+
+const simpleTxWatcher = (txHash: string, walletAddress: string, walletNonce: number, provider: JsonRpcProvider) =>
+  new Promise<TransactionReceipt>((resolve, reject) => {
+    const unsubscribe = () => {
+      provider.off('block', checkTx)
+    }
+
+    let replacedBlockCount = 0
+
+    const checkTx = async () => {
+      // try to retrieve the receipt
+      const testReceipt = await provider.getTransactionReceipt(txHash)
+      if (testReceipt !== null) {
+        unsubscribe()
+        resolve(testReceipt)
+      } else {
+        // Check if tx was replaced
+        const currentNonce = await provider.getTransactionCount(walletAddress)
+        if (currentNonce > walletNonce) {
+          if (replacedBlockCount >= 2) {
+            unsubscribe()
+            reject(`Transaction not found. It might have been replaced or cancelled in the connected wallet.`)
+          }
+          replacedBlockCount++
+        }
+      }
+    }
+
+    // Subscribe
+    provider.on('block', checkTx)
+    unsubFunctions[txHash] = unsubscribe
+  })
+
+export const cancelWaitForTx = async (txHash: string) => {
+  unsubFunctions[txHash]?.()
+}
+
 // Provider must be passed as an argument as it is undefined until initialised by `useInitWeb3`
-export const waitForTx = async (provider: JsonRpcProvider, txIds: string[], txHash: string, submittedAt?: number) => {
+export const waitForTx = async (
+  provider: JsonRpcProvider,
+  txIds: string[],
+  txHash: string,
+  walletAddress: string,
+  walletNonce: number,
+  submittedAt?: number,
+) => {
   try {
     // Return receipt after 1 additional block was mined/validated or until timeout
     // https://docs.ethers.io/v5/single-page/#/v5/api/providers/provider/-%23-Provider-waitForTransaction
-    const receipt = await provider.waitForTransaction(txHash, 1)
+    const receipt = await simpleTxWatcher(txHash, walletAddress, walletNonce, provider)
 
     if (!receipt) {
-      throw new Error(`Transaction could not be processed. Be aware that it might still be processed.`)
+      throw new Error(`Transaction not found. It might have been replaced or cancelled in the connected wallet.`)
     }
 
     if (didRevert(receipt)) {
