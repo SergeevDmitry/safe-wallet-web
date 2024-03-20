@@ -8,15 +8,16 @@ import DialogActions from '@mui/material/DialogActions'
 import { useSafeTransaction } from '@/features/speedup/hooks/useSafeTransaction'
 import useWallet from '@/hooks/wallets/useWallet'
 import useOnboard from '@/hooks/wallets/useOnboard'
-import useChainId from '@/hooks/useChainId'
 import useSafeAddress from '@/hooks/useSafeAddress'
 import { useAppDispatch } from '@/store'
 import { dispatchTxSpeedUp } from '@/services/tx/tx-sender'
 import { showNotification } from '@/store/notificationsSlice'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import GasParams from '@/components/tx/GasParams'
 import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { asError } from '@/services/exceptions/utils'
+import { getTxOptions } from '@/utils/transactions'
+import { useCurrentChain } from '@/hooks/useChains'
 
 type Props = {
   open: boolean
@@ -27,49 +28,37 @@ type Props = {
   signerNonce: number | undefined | null
 }
 export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress, signerNonce }: Props) => {
-  const [gasPrice] = useGasPrice()
+  const [speedUpFee] = useGasPrice(true)
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false)
   const safeTx = useSafeTransaction(txDetails)
   const { gasLimit } = useGasLimit(safeTx)
 
   const wallet = useWallet()
   const onboard = useOnboard()
-  const chainId = useChainId()
+  const chainInfo = useCurrentChain()
   const safeAddress = useSafeAddress()
   const hasActions = signerAddress && signerNonce !== undefined && signerAddress === wallet?.address
   const dispatch = useAppDispatch()
 
-  const isDisabled = waitingForConfirmation || !wallet || !safeTx || !gasPrice || !txDetails || !onboard
-
-  const speedUpFee = useMemo(
-    () => ({
-      ...gasPrice,
-      maxFeePerGas: BigInt(gasPrice?.maxFeePerGas ?? 10n) + BigInt(gasPrice?.maxPriorityFeePerGas ?? 1n),
-      maxPriorityFeePerGas: BigInt(gasPrice?.maxPriorityFeePerGas ?? 1n) * 2n,
-    }),
-    [gasPrice],
-  )
+  const isDisabled = waitingForConfirmation || !wallet || !safeTx || !speedUpFee || !txDetails || !onboard
 
   const onSubmit = useCallback(async () => {
-    if (!wallet || !safeTx || !gasPrice || !txDetails || !onboard) {
+    if (!wallet || !safeTx || !speedUpFee || !txDetails || !onboard || !chainInfo) {
       return null
     }
 
+    const txOptions = getTxOptions(
+      {
+        ...speedUpFee,
+        nonce: signerNonce ?? undefined,
+        gasLimit: gasLimit,
+      },
+      chainInfo,
+    )
+
     try {
       setWaitingForConfirmation(true)
-      await dispatchTxSpeedUp(
-        safeTx,
-        {
-          nonce: signerNonce ?? undefined,
-          gasLimit: gasLimit?.toString(),
-          maxFeePerGas: speedUpFee.maxFeePerGas.toString(),
-          maxPriorityFeePerGas: speedUpFee.maxPriorityFeePerGas.toString(),
-        },
-        txDetails.txId,
-        onboard,
-        chainId,
-        safeAddress,
-      )
+      await dispatchTxSpeedUp(safeTx, txOptions, txDetails.txId, onboard, chainInfo?.chainId, safeAddress)
 
       setWaitingForConfirmation(false)
       handleClose()
@@ -92,10 +81,9 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, signerAddress
     wallet,
     txDetails,
     onboard,
-    chainId,
+    chainInfo,
     safeAddress,
     dispatch,
-    gasPrice,
     handleClose,
   ])
 

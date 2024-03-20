@@ -172,8 +172,16 @@ export const getTotalFeeFormatted = (
     ? formatVisualAmount(getTotalFee(maxFeePerGas, gasLimit), chain?.nativeCurrency.decimals)
     : '> 0.001'
 }
-
-const useGasPrice = (): AsyncResult<GasFeeParams> => {
+/**
+ * Estimates the gas price through the configured methods:
+ * - Oracle
+ * - Fixed gas prices
+ * - Or using ethers' getFeeData
+ *
+ * @param isSpeedUp if true, increases the returned gas parameters
+ * @returns [gasPrice, error, loading]
+ */
+const useGasPrice = (isSpeedUp: boolean = false): AsyncResult<GasFeeParams> => {
   const chain = useCurrentChain()
   const gasPriceConfigs = chain?.gasPrice
   const [counter] = useIntervalCounter(REFRESH_DELAY)
@@ -191,7 +199,23 @@ const useGasPrice = (): AsyncResult<GasFeeParams> => {
       ])
 
       // Prepare the return values
-      return getGasParameters(gasEstimation, feeData, isEIP1559)
+      const gasParameters = getGasParameters(gasEstimation, feeData, isEIP1559)
+
+      if (!isSpeedUp) {
+        return gasParameters
+      }
+
+      if (isEIP1559) {
+        return {
+          maxFeePerGas: BigInt(gasParameters?.maxFeePerGas ?? 10n) + BigInt(gasParameters?.maxPriorityFeePerGas ?? 2n),
+          maxPriorityFeePerGas: BigInt(gasParameters?.maxPriorityFeePerGas ?? 1n) * 2n,
+        }
+      }
+
+      return {
+        maxFeePerGas: (BigInt(gasParameters?.maxFeePerGas ?? 10n) * 150n) / 100n,
+        maxPriorityFeePerGas: undefined,
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gasPriceConfigs, provider, counter, isEIP1559],
