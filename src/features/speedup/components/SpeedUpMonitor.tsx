@@ -3,11 +3,9 @@ import { SpeedUpModal } from '@/features/speedup/components/SpeedUpModal'
 import Rocket from '@/public/images/common/rocket.svg'
 import { useCounter } from '@/components/common/Notifications/useCounter'
 import { useState } from 'react'
-import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { PendingStatus, type PendingTx } from '@/store/pendingTxsSlice'
 
-type Props = {
-  txDetails: undefined | TransactionDetails
+type SpeedUpMonitorProps = {
   txId: string
   pendingTx: PendingTx
   modalTrigger: 'alertBox' | 'alertButton'
@@ -15,12 +13,12 @@ type Props = {
 
 const SPEED_UP_THRESHOLD_IN_SECONDS = 5
 
-export function SpeedUpMonitor({ txDetails, txId, pendingTx, modalTrigger = 'alertBox' }: Props) {
+export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: SpeedUpMonitorProps) => {
   const [openSpeedUpModal, setOpenSpeedUpModal] = useState(false)
-  const counter = useCounter(pendingTx?.submittedAt)
+  const counter = useCounter(pendingTx.submittedAt)
 
   // We only care about processing txs, for everything else we don't show the speed up button
-  if (!pendingTx || pendingTx.status !== PendingStatus.PROCESSING || !pendingTx.txHash) {
+  if (pendingTx.status !== PendingStatus.PROCESSING || !pendingTx.txHash) {
     return null
   }
 
@@ -34,7 +32,6 @@ export function SpeedUpMonitor({ txDetails, txId, pendingTx, modalTrigger = 'ale
         <SpeedUpModal
           open={openSpeedUpModal}
           handleClose={() => setOpenSpeedUpModal(false)}
-          txDetails={txDetails}
           txId={txId}
           txHash={pendingTx.txHash}
           signerAddress={pendingTx.signerAddress}

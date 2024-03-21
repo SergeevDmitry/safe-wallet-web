@@ -172,6 +172,11 @@ export const getTotalFeeFormatted = (
     ? formatVisualAmount(getTotalFee(maxFeePerGas, gasLimit), chain?.nativeCurrency.decimals)
     : '> 0.001'
 }
+
+const SPEED_UP_MAX_PRIO_FACTOR = 2n
+
+const SPEED_UP_GAS_PRICE_FACTOR = 150n
+
 /**
  * Estimates the gas price through the configured methods:
  * - Oracle
@@ -205,15 +210,19 @@ const useGasPrice = (isSpeedUp: boolean = false): AsyncResult<GasFeeParams> => {
         return gasParameters
       }
 
-      if (isEIP1559) {
+      if (isEIP1559 && gasParameters.maxFeePerGas && gasParameters.maxPriorityFeePerGas) {
         return {
-          maxFeePerGas: BigInt(gasParameters?.maxFeePerGas ?? 10n) + BigInt(gasParameters?.maxPriorityFeePerGas ?? 2n),
-          maxPriorityFeePerGas: BigInt(gasParameters?.maxPriorityFeePerGas ?? 1n) * 2n,
+          maxFeePerGas:
+            gasParameters.maxFeePerGas +
+            (gasParameters.maxPriorityFeePerGas * SPEED_UP_MAX_PRIO_FACTOR - gasParameters.maxPriorityFeePerGas),
+          maxPriorityFeePerGas: gasParameters.maxPriorityFeePerGas * SPEED_UP_MAX_PRIO_FACTOR,
         }
       }
 
       return {
-        maxFeePerGas: (BigInt(gasParameters?.maxFeePerGas ?? 10n) * 150n) / 100n,
+        maxFeePerGas: gasParameters.maxFeePerGas
+          ? (gasParameters.maxFeePerGas * SPEED_UP_GAS_PRICE_FACTOR) / 100n
+          : undefined,
         maxPriorityFeePerGas: undefined,
       }
     },

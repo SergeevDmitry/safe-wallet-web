@@ -12,8 +12,6 @@ import { TxEvent, txSubscribe } from '@/services/tx/txEvents'
 import useSafeInfo from '@/hooks/useSafeInfo'
 import { TxModalContext } from '../..'
 import LoadingSpinner, { SpinnerStatus } from '@/components/new-safe/create/steps/StatusStep/LoadingSpinner'
-import useAsync from '@/hooks/useAsync'
-import { getTransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { ProcessingStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/ProcessingStatus'
 import { IndexingStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/IndexingStatus'
 import { DefaultStatus } from '@/components/tx-flow/flows/SuccessScreen/statuses/DefaultStatus'
@@ -27,12 +25,6 @@ const SuccessScreen = ({ txId }: { txId: string }) => {
   const { safeAddress } = useSafeInfo()
   const { txHash = '', status } = pendingTx || {}
   const txLink = chain && getTxLink(txId, chain, safeAddress)
-
-  const [txDetails, txDetailsLoading, txDetailError] = useAsync(() => {
-    if (!pendingTx) return Promise.resolve(undefined)
-
-    return getTransactionDetails(pendingTx.chainId, txId)
-  }, [pendingTx, txId])
 
   useEffect(() => {
     if (!txHash) return
@@ -61,7 +53,7 @@ const SuccessScreen = ({ txId }: { txId: string }) => {
   switch (status) {
     case PendingStatus.PROCESSING:
     case PendingStatus.RELAYING:
-      StatusComponent = <ProcessingStatus txDetails={txDetails} txId={txId} pendingTx={pendingTx} />
+      StatusComponent = <ProcessingStatus txId={txId} pendingTx={pendingTx} />
       break
     case PendingStatus.INDEXING:
       StatusComponent = <IndexingStatus />

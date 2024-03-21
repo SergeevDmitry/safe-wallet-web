@@ -64,7 +64,7 @@ export const _GasParams = ({
 
   const onEditClick = (e: SyntheticEvent) => {
     e.preventDefault()
-    onEdit && onEdit()
+    onEdit?.()
   }
 
   const EditComponent = (

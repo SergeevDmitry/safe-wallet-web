@@ -14,26 +14,28 @@ import { dispatchTxSpeedUp } from '@/services/tx/tx-sender'
 import { showNotification } from '@/store/notificationsSlice'
 import { useCallback, useState } from 'react'
 import GasParams from '@/components/tx/GasParams'
-import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import { asError } from '@/services/exceptions/utils'
 import { getTxOptions } from '@/utils/transactions'
-import { useCurrentChain } from '@/hooks/useChains'
+import { useCurrentChain, useHasFeature } from '@/hooks/useChains'
 import { SimpleTxWatcher } from '@/utils/SimpleTxWatcher'
+import { FEATURES } from '@/utils/chains'
+import { isWalletRejection } from '@/utils/wallets'
 
 type Props = {
   open: boolean
   handleClose: () => void
-  txDetails: undefined | TransactionDetails
   txId: string
   txHash: string
   signerAddress: string | undefined
   signerNonce: number | undefined | null
 }
-export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signerAddress, signerNonce }: Props) => {
+export const SpeedUpModal = ({ open, handleClose, txId, txHash, signerAddress, signerNonce }: Props) => {
   const [speedUpFee] = useGasPrice(true)
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false)
-  const safeTx = useSafeTransaction(txDetails)
+  const safeTx = useSafeTransaction(txId)
   const { gasLimit } = useGasLimit(safeTx)
+
+  const isEIP1559 = useHasFeature(FEATURES.EIP1559)
 
   const wallet = useWallet()
   const onboard = useOnboard()
@@ -42,10 +44,10 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
   const hasActions = signerAddress && signerNonce !== undefined && signerAddress === wallet?.address
   const dispatch = useAppDispatch()
 
-  const isDisabled = waitingForConfirmation || !wallet || !safeTx || !speedUpFee || !txDetails || !onboard
+  const isDisabled = waitingForConfirmation || !wallet || !safeTx || !speedUpFee || !onboard
 
   const onSubmit = useCallback(async () => {
-    if (!wallet || !safeTx || !speedUpFee || !txDetails || !onboard || !chainInfo) {
+    if (!wallet || !safeTx || !speedUpFee || !onboard || !chainInfo) {
       return null
     }
 
@@ -60,7 +62,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
 
     try {
       setWaitingForConfirmation(true)
-      await dispatchTxSpeedUp(safeTx, txOptions, txDetails.txId, onboard, chainInfo?.chainId, safeAddress)
+      await dispatchTxSpeedUp(safeTx, txOptions, txId, onboard, chainInfo?.chainId, safeAddress)
 
       if (txHash) {
         SimpleTxWatcher.getInstance().stopWatchingTxHash(txHash)
@@ -69,21 +71,24 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
       setWaitingForConfirmation(false)
       handleClose()
     } catch (e) {
+      const error = asError(e)
       setWaitingForConfirmation(false)
-      dispatch(
-        showNotification({
-          message: 'Speed up failed',
-          variant: 'error',
-          detailedMessage: asError(e).message,
-          groupKey: txDetails.txId,
-        }),
-      )
+      if (!isWalletRejection(error)) {
+        dispatch(
+          showNotification({
+            message: 'Speed up failed',
+            variant: 'error',
+            detailedMessage: error.message,
+            groupKey: txId,
+          }),
+        )
+      }
     }
   }, [
     wallet,
     safeTx,
     speedUpFee,
-    txDetails,
+    txId,
     onboard,
     chainInfo,
     signerNonce,
@@ -122,7 +127,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
                 maxPriorityFeePerGas: speedUpFee.maxPriorityFeePerGas,
               }}
               isExecution={true}
-              isEIP1559={true}
+              isEIP1559={isEIP1559}
               willRelay={false}
             />
           )}
