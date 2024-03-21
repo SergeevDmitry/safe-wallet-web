@@ -18,7 +18,7 @@ import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sd
 import { asError } from '@/services/exceptions/utils'
 import { getTxOptions } from '@/utils/transactions'
 import { useCurrentChain } from '@/hooks/useChains'
-import { cancelWaitForTx } from '@/services/tx/txMonitor'
+import { SimpleTxWatcher } from '@/utils/tx-watcher'
 
 type Props = {
   open: boolean
@@ -63,7 +63,7 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
       await dispatchTxSpeedUp(safeTx, txOptions, txDetails.txId, onboard, chainInfo?.chainId, safeAddress)
 
       if (txHash) {
-        cancelWaitForTx(txHash)
+        SimpleTxWatcher.getInstance().stopWatchingTxHash(txHash)
       }
 
       setWaitingForConfirmation(false)
@@ -80,17 +80,18 @@ export const SpeedUpModal = ({ open, handleClose, txDetails, txId, txHash, signe
       )
     }
   }, [
-    speedUpFee,
-    gasLimit,
-    safeTx,
-    signerNonce,
     wallet,
+    safeTx,
+    speedUpFee,
     txDetails,
     onboard,
     chainInfo,
+    signerNonce,
+    gasLimit,
     safeAddress,
-    dispatch,
+    txHash,
     handleClose,
+    dispatch,
   ])
 
   if (!hasActions) {

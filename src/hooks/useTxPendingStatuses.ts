@@ -3,11 +3,12 @@ import { clearPendingTx, setPendingTx, selectPendingTxs, PendingStatus } from '@
 import { useEffect, useMemo, useRef } from 'react'
 import { TxEvent, txSubscribe } from '@/services/tx/txEvents'
 import useChainId from './useChainId'
-import { cancelWaitForTx, waitForRelayedTx, waitForTx } from '@/services/tx/txMonitor'
+import { waitForRelayedTx, waitForTx } from '@/services/tx/txMonitor'
 import { useWeb3ReadOnly } from '@/hooks/wallets/web3'
 import useTxHistory from './useTxHistory'
 import { isTransactionListItem } from '@/utils/transaction-guards'
 import useSafeInfo from './useSafeInfo'
+import { SimpleTxWatcher } from '@/utils/tx-watcher'
 
 const pendingStatuses: Partial<Record<TxEvent, PendingStatus | null>> = {
   [TxEvent.SIGNATURE_PROPOSED]: PendingStatus.SIGNING,
@@ -87,7 +88,7 @@ const useTxPendingStatuses = (): void => {
         const isFinished = status === null
         if (isFinished) {
           if ('txHash' in detail && detail.txHash) {
-            cancelWaitForTx(detail.txHash)
+            SimpleTxWatcher.getInstance().stopWatchingTxHash(detail.txHash)
           }
           dispatch(clearPendingTx({ txId }))
           return
