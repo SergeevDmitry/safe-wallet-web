@@ -4,6 +4,10 @@ import Rocket from '@/public/images/common/rocket.svg'
 import { useCounter } from '@/components/common/Notifications/useCounter'
 import { useState } from 'react'
 import { PendingStatus, type PendingTx } from '@/store/pendingTxsSlice'
+import useAsync from '@/hooks/useAsync'
+import { isSmartContract, useWeb3ReadOnly } from '@/hooks/wallets/web3'
+import useWallet from '@/hooks/wallets/useWallet'
+import { sameAddress } from '@/utils/addresses'
 
 type SpeedUpMonitorProps = {
   txId: string
@@ -15,10 +19,27 @@ const SPEED_UP_THRESHOLD_IN_SECONDS = 5
 
 export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: SpeedUpMonitorProps) => {
   const [openSpeedUpModal, setOpenSpeedUpModal] = useState(false)
+  const wallet = useWallet()
   const counter = useCounter(pendingTx.submittedAt)
+  const web3ReadOnly = useWeb3ReadOnly()
+  const [transaction] = useAsync(async () => {
+    if (!pendingTx.txHash) return null
+    return web3ReadOnly?.getTransaction(pendingTx.txHash)
+  }, [pendingTx.txHash])
+
+  const [smartContract] = useAsync(async () => {
+    if (!pendingTx.signerAddress || !web3ReadOnly) return false
+    return await isSmartContract(web3ReadOnly, pendingTx.signerAddress)
+  }, [pendingTx.signerAddress, web3ReadOnly])
 
   // We only care about processing txs, for everything else we don't show the speed up button
-  if (pendingTx.status !== PendingStatus.PROCESSING || !pendingTx.txHash) {
+  if (
+    pendingTx.status !== PendingStatus.PROCESSING ||
+    !pendingTx.txHash ||
+    !transaction ||
+    !sameAddress(pendingTx.signerAddress, wallet?.address) ||
+    !smartContract
+  ) {
     return null
   }
 
@@ -32,6 +53,7 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
         <SpeedUpModal
           open={openSpeedUpModal}
           handleClose={() => setOpenSpeedUpModal(false)}
+          tx={transaction}
           txId={txId}
           txHash={pendingTx.txHash}
           signerAddress={pendingTx.signerAddress}

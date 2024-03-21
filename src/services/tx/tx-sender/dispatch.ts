@@ -195,14 +195,65 @@ const executeTransaction = async (
 }
 
 export const dispatchTxSpeedUp = async (
-  safeTx: SafeTransaction,
   txOptions: TransactionOptions,
   txId: string,
+  to: string,
+  data: string,
   onboard: OnboardAPI,
   chainId: SafeInfo['chainId'],
   safeAddress: string,
 ) => {
-  return executeTransaction(safeTx, txOptions, txId, onboard, chainId, safeAddress, TxEvent.SPEEDUP_FAILED)
+  const eventParams = { txId }
+  const wallet = await assertWalletChain(onboard, chainId)
+  const signerNonce = txOptions.nonce ?? (await getUserNonce(wallet.address))
+  const web3Provider = createWeb3(wallet.provider)
+  const signer = await web3Provider.getSigner()
+
+  // Execute the tx
+  let result: TransactionResult | undefined
+  try {
+    result = await signer.sendTransaction({ to, data, ...txOptions })
+    txDispatch(TxEvent.EXECUTING, eventParams)
+  } catch (error) {
+    txDispatch(TxEvent.SPEEDUP_FAILED, { ...eventParams, error: asError(error) })
+    throw error
+  }
+
+  txDispatch(TxEvent.PROCESSING, {
+    ...eventParams,
+    txHash: result.hash,
+    signerAddress: wallet.address,
+    signerNonce,
+  })
+
+  const provider = getWeb3ReadOnly()
+
+  // Asynchronously watch the tx to be mined/validated
+  Promise.race([
+    result.transactionResponse
+      ?.wait()
+      .then((receipt) => {
+        if (receipt === null) {
+          txDispatch(TxEvent.FAILED, { ...eventParams, error: new Error('No transaction receipt found') })
+        } else if (didRevert(receipt)) {
+          txDispatch(TxEvent.REVERTED, { ...eventParams, error: new Error('Transaction reverted by EVM') })
+        } else {
+          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
+        }
+      })
+      .catch((err) => {
+        const error = err as EthersError
+
+        if (didReprice(error)) {
+          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
+        } else {
+          txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
+        }
+      }),
+    provider ? waitForTx(provider, [txId], result.hash, wallet.address, signerNonce) : undefined,
+  ])
+
+  return result.hash
 }
 
 /**
