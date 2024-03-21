@@ -8,7 +8,7 @@ import { type JsonRpcProvider, type TransactionReceipt } from 'ethers'
  * - {@linkplain stopWatchingTxHash} to stop an active watcher for a pending tx
  */
 export class SimpleTxWatcher {
-  static INSTANCE: SimpleTxWatcher | undefined
+  private static INSTANCE: SimpleTxWatcher | undefined
   private unsubFunctions: Record<string, () => void>
 
   private constructor() {

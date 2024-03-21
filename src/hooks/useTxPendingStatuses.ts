@@ -8,7 +8,7 @@ import { useWeb3ReadOnly } from '@/hooks/wallets/web3'
 import useTxHistory from './useTxHistory'
 import { isTransactionListItem } from '@/utils/transaction-guards'
 import useSafeInfo from './useSafeInfo'
-import { SimpleTxWatcher } from '@/utils/tx-watcher'
+import { SimpleTxWatcher } from '@/utils/SimpleTxWatcher'
 
 const pendingStatuses: Partial<Record<TxEvent, PendingStatus | null>> = {
   [TxEvent.SIGNATURE_PROPOSED]: PendingStatus.SIGNING,

@@ -6,8 +6,8 @@ import { POLLING_INTERVAL } from '@/config/constants'
 import { Errors, logError } from '@/services/exceptions'
 import { SafeCreationStatus } from '@/components/new-safe/create/steps/StatusStep/useSafeCreation'
 import { asError } from '../exceptions/utils'
-import { type TransactionReceipt, type JsonRpcProvider } from 'ethers'
-import { SimpleTxWatcher } from '@/utils/tx-watcher'
+import { type JsonRpcProvider } from 'ethers'
+import { SimpleTxWatcher } from '@/utils/SimpleTxWatcher'
 
 export function _getRemainingTimeout(defaultTimeout: number, submittedAt?: number) {
   const timeoutInMs = defaultTimeout * 60_000

@@ -18,7 +18,7 @@ import { type TransactionDetails } from '@safe-global/safe-gateway-typescript-sd
 import { asError } from '@/services/exceptions/utils'
 import { getTxOptions } from '@/utils/transactions'
 import { useCurrentChain } from '@/hooks/useChains'
-import { SimpleTxWatcher } from '@/utils/tx-watcher'
+import { SimpleTxWatcher } from '@/utils/SimpleTxWatcher'
 
 type Props = {
   open: boolean
