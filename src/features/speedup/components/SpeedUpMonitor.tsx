@@ -38,7 +38,7 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
     !pendingTx.txHash ||
     !transaction ||
     !sameAddress(pendingTx.signerAddress, wallet?.address) ||
-    !smartContract
+    smartContract
   ) {
     return null
   }
