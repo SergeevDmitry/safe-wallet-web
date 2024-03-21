@@ -63,16 +63,3 @@ export const selectPendingTxIdsBySafe = createSelector(
       (id) => pendingTxs[id].chainId === chainId && sameAddress(pendingTxs[id].safeAddress, safeAddress),
     ),
 )
-
-export const selectActivePendingTxsBySafe = createSelector(
-  [selectPendingTxs, (_: RootState, chainId: string, safeAddress: string) => [chainId, safeAddress]],
-  (pendingTxs, [chainId, safeAddress]) =>
-    Object.entries(pendingTxs)
-      .filter(
-        (pendingTx) =>
-          pendingTx[1].chainId === chainId &&
-          sameAddress(pendingTx[1].safeAddress, safeAddress) &&
-          ActivePendingStates.includes(pendingTx[1].status),
-      )
-      .map((entry) => ({ ...entry[1], txId: entry[0] })),
-)
