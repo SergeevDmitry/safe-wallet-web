@@ -12,8 +12,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { OVERVIEW_EVENTS } from '@/services/analytics/events/overview'
 import Track from '../Track'
 import { isRelativeUrl } from '@/utils/url'
-import useChainId from '@/hooks/useChainId'
-import useSafeAddress from '@/hooks/useSafeAddress'
 
 const toastStyle = { position: 'static', margin: 1 }
 

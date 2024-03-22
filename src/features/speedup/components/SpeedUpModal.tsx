@@ -82,7 +82,20 @@ export const SpeedUpModal = ({ open, handleClose, tx, txId, txHash, signerAddres
         )
       }
     }
-  }, [wallet, speedUpFee, onboard, chainInfo, signerNonce, gasLimit, safeAddress, txHash, handleClose, dispatch])
+  }, [
+    wallet,
+    speedUpFee,
+    onboard,
+    chainInfo,
+    signerNonce,
+    gasLimit,
+    safeAddress,
+    txHash,
+    handleClose,
+    dispatch,
+    tx,
+    txId,
+  ])
 
   if (!hasActions) {
     return null

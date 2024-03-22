@@ -23,9 +23,9 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
   const counter = useCounter(pendingTx.submittedAt)
   const web3ReadOnly = useWeb3ReadOnly()
   const [transaction] = useAsync(async () => {
-    if (!pendingTx.txHash) return null
+    if (!pendingTx.txHash || !web3ReadOnly) return null
     return web3ReadOnly?.getTransaction(pendingTx.txHash)
-  }, [pendingTx.txHash])
+  }, [pendingTx.txHash, web3ReadOnly])
 
   const [smartContract] = useAsync(async () => {
     if (!pendingTx.signerAddress || !web3ReadOnly) return false
