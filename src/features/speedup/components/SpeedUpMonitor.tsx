@@ -15,7 +15,7 @@ type SpeedUpMonitorProps = {
   modalTrigger: 'alertBox' | 'alertButton'
 }
 
-const SPEED_UP_THRESHOLD_IN_SECONDS = 5
+const SPEED_UP_THRESHOLD_IN_SECONDS = 15
 
 export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: SpeedUpMonitorProps) => {
   const [openSpeedUpModal, setOpenSpeedUpModal] = useState(false)

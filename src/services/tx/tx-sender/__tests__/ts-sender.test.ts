@@ -111,8 +111,6 @@ const mockOnboard = {
   },
 } as unknown as OnboardAPI
 
-// result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
-// const signerAddress = await sdkUnchecked.getEthAdapter().getSignerAddress()
 // Mock Safe SDK
 const mockSafeSDK = {
   createTransaction: jest.fn(() => ({

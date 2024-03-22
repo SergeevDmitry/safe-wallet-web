@@ -103,8 +103,6 @@ const getVisibleNotifications = (notifications: Notification[]) => {
 const Notifications = (): ReactElement | null => {
   const notifications = useAppSelector(selectNotifications)
   const dispatch = useAppDispatch()
-  const chainId = useChainId()
-  const safeAddress = useSafeAddress()
 
   const visible = getVisibleNotifications(notifications)
 
