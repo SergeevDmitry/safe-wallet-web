@@ -52,7 +52,7 @@ const useTxMonitor = (): void => {
       monitoredTxs.current[txId] = true
 
       if (isProcessing && signerNonce && signerAddress) {
-        waitForTx(provider, [txId], txHash, signerAddress, signerNonce, submittedAt)
+        waitForTx(provider, [txId], txHash, safeAddress, signerAddress, signerNonce)
         continue
       }
 

@@ -1,7 +1,6 @@
 import type { SafeInfo, TransactionDetails } from '@safe-global/safe-gateway-typescript-sdk'
 import type { SafeTransaction, TransactionOptions, TransactionResult } from '@safe-global/safe-core-sdk-types'
-import type { EthersError } from '@/utils/ethers-utils'
-import { didReprice, didRevert } from '@/utils/ethers-utils'
+import { didRevert } from '@/utils/ethers-utils'
 import type { MultiSendCallOnlyEthersContract } from '@safe-global/protocol-kit'
 import { type SpendingLimitTxParams } from '@/components/tx-flow/flows/TokenTransfer/ReviewSpendingLimitTx'
 import { getSpendingLimitContract } from '@/services/contracts/spendingLimitContracts'
@@ -167,29 +166,10 @@ const executeTransaction = async (
   const provider = getWeb3ReadOnly()
 
   // Asynchronously watch the tx to be mined/validated
-  Promise.race([
-    result.transactionResponse
-      ?.wait()
-      .then((receipt) => {
-        if (receipt === null) {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: new Error('No transaction receipt found') })
-        } else if (didRevert(receipt)) {
-          txDispatch(TxEvent.REVERTED, { ...eventParams, error: new Error('Transaction reverted by EVM') })
-        } else {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        }
-      })
-      .catch((err) => {
-        const error = err as EthersError
-
-        if (didReprice(error)) {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        } else {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
-        }
-      }),
-    provider ? waitForTx(provider, [txId], result.hash, wallet.address, signerNonce) : undefined,
-  ])
+  if (provider) {
+    // don't await as we don't want to block
+    waitForTx(provider, [txId], result.hash, safeAddress, wallet.address, signerNonce)
+  }
 
   return result.hash
 }
@@ -228,30 +208,10 @@ export const dispatchTxSpeedUp = async (
 
   const provider = getWeb3ReadOnly()
 
-  // Asynchronously watch the tx to be mined/validated
-  Promise.race([
-    result.transactionResponse
-      ?.wait()
-      .then((receipt) => {
-        if (receipt === null) {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: new Error('No transaction receipt found') })
-        } else if (didRevert(receipt)) {
-          txDispatch(TxEvent.REVERTED, { ...eventParams, error: new Error('Transaction reverted by EVM') })
-        } else {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        }
-      })
-      .catch((err) => {
-        const error = err as EthersError
-
-        if (didReprice(error)) {
-          txDispatch(TxEvent.PROCESSED, { ...eventParams, safeAddress })
-        } else {
-          txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
-        }
-      }),
-    provider ? waitForTx(provider, [txId], result.hash, wallet.address, signerNonce) : undefined,
-  ])
+  if (provider) {
+    // don't await as we don't want to block
+    waitForTx(provider, [txId], result.hash, safeAddress, wallet.address, signerNonce)
+  }
 
   return result.hash
 }
@@ -316,58 +276,10 @@ export const dispatchBatchExecution = async (
 
   const provider = getWeb3ReadOnly()
 
-  Promise.race([
-    result.transactionResponse
-      ?.wait()
-      .then((receipt) => {
-        if (receipt === null) {
-          txs.forEach(({ txId }) => {
-            txDispatch(TxEvent.FAILED, {
-              txId,
-              error: new Error('No transaction receipt found'),
-              groupKey,
-            })
-          })
-        } else if (didRevert(receipt)) {
-          txIds.forEach((txId) => {
-            txDispatch(TxEvent.REVERTED, {
-              txId,
-              error: new Error('Transaction reverted by EVM'),
-              groupKey,
-            })
-          })
-        } else {
-          txIds.forEach((txId) => {
-            txDispatch(TxEvent.PROCESSED, {
-              txId,
-              groupKey,
-              safeAddress,
-            })
-          })
-        }
-      })
-      .catch((err) => {
-        const error = err as EthersError
-
-        if (didReprice(error)) {
-          txIds.forEach((txId) => {
-            txDispatch(TxEvent.PROCESSED, {
-              txId,
-              safeAddress,
-            })
-          })
-        } else {
-          txIds.forEach((txId) => {
-            txDispatch(TxEvent.FAILED, {
-              txId,
-              error: asError(err),
-              groupKey,
-            })
-          })
-        }
-      }),
-    provider ? waitForTx(provider, txIds, result.hash, signerAddress, signerNonce) : undefined,
-  ])
+  if (provider) {
+    // don't await as we don't want to block
+    waitForTx(provider, txIds, result.hash, safeAddress, signerAddress, signerNonce)
+  }
 
   return result!.hash
 }

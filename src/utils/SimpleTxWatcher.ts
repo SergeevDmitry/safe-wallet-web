@@ -9,7 +9,7 @@ import { type JsonRpcProvider, type TransactionReceipt } from 'ethers'
  */
 export class SimpleTxWatcher {
   private static INSTANCE: SimpleTxWatcher | undefined
-  private unsubFunctions: Record<string, () => void>
+  private readonly unsubFunctions: Record<string, () => void>
 
   private constructor() {
     this.unsubFunctions = {}
