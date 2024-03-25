@@ -15,7 +15,7 @@ import useIsPending from '@/hooks/useIsPending'
 import TxConfirmations from '../TxConfirmations'
 import { useHasFeature } from '@/hooks/useChains'
 import { FEATURES } from '@/utils/chains'
-import { PendingActions } from '@/components/transactions/TxSummary/PendingActions'
+import TxStatusLabel from '@/components/transactions/TxStatusLabel'
 
 type TxSummaryProps = {
   isGrouped?: boolean
@@ -75,7 +75,15 @@ const TxSummary = ({ item, isGrouped }: TxSummaryProps): ReactElement => {
         </Box>
       )}
 
-      <Box gridArea="status">{isQueue && !isPending ? <QueueActions tx={tx} /> : <PendingActions tx={tx} />}</Box>
+      <Box gridArea="status" justifyContent="flex-end" display="flex" mr={5}>
+        <TxStatusLabel tx={tx} />
+      </Box>
+
+      {isQueue && (
+        <Box gridArea="actions">
+          <QueueActions tx={tx} />
+        </Box>
+      )}
     </Box>
   )
 }
