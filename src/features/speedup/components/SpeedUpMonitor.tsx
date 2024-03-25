@@ -63,7 +63,10 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
           <Alert
             severity="warning"
             icon={<SvgIcon component={Rocket} />}
-            action={<Button onClick={() => setOpenSpeedUpModal(true)}>{`Speed up >`}</Button>}
+            action={<Button onClick={(e) => {
+              e.stopPropagation()
+              setOpenSpeedUpModal(true)
+            }}>{`Speed up >`}</Button>}
           >
             <AlertTitle>
               <Typography textAlign={'left'}>Taking too long?</Typography>
@@ -71,7 +74,15 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
             Try to speed up with better gas parameters.
           </Alert>
         ) : (
-          <Button variant="outlined" size="small" sx={{ py: 0.6 }} onClick={() => setOpenSpeedUpModal(true)}>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{ py: 0.6 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpenSpeedUpModal(true)
+            }}
+          >
             Speed up
           </Button>
         )}
