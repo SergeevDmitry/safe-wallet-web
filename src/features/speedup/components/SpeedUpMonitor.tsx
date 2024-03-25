@@ -3,11 +3,11 @@ import { SpeedUpModal } from '@/features/speedup/components/SpeedUpModal'
 import Rocket from '@/public/images/common/rocket.svg'
 import { useCounter } from '@/components/common/Notifications/useCounter'
 import { useState } from 'react'
-import { PendingStatus, type PendingTx } from '@/store/pendingTxsSlice'
+import { type PendingTx } from '@/store/pendingTxsSlice'
 import useAsync from '@/hooks/useAsync'
 import { isSmartContract, useWeb3ReadOnly } from '@/hooks/wallets/web3'
 import useWallet from '@/hooks/wallets/useWallet'
-import { sameAddress } from '@/utils/addresses'
+import { isSpeedableTx } from '@/features/speedup/utils/IsSpeedableTx'
 
 type SpeedUpMonitorProps = {
   txId: string
@@ -33,14 +33,7 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
     return isSmartContract(web3ReadOnly, pendingTx.signerAddress)
   }, [pendingTx.signerAddress, web3ReadOnly])
 
-  // We only care about processing txs, for everything else we don't show the speed up button
-  if (
-    pendingTx.status !== PendingStatus.PROCESSING ||
-    !pendingTx.txHash ||
-    !transaction ||
-    !sameAddress(pendingTx.signerAddress, wallet?.address) ||
-    smartContract
-  ) {
+  if (!isSpeedableTx(pendingTx, transaction, smartContract, wallet?.address || '')) {
     return null
   }
 
@@ -54,9 +47,9 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
         <SpeedUpModal
           open={openSpeedUpModal}
           handleClose={() => setOpenSpeedUpModal(false)}
-          tx={transaction}
+          tx={transaction!}
           txId={txId}
-          txHash={pendingTx.txHash}
+          txHash={pendingTx.txHash!}
           signerAddress={pendingTx.signerAddress}
           signerNonce={pendingTx.signerNonce}
         />
