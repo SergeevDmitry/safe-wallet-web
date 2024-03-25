@@ -107,7 +107,7 @@ export const SpeedUpModal = ({ open, handleClose, tx, txId, txHash, signerAddres
         <Box display="flex" justifyContent="center" alignItems="center" mb={2}>
           <SvgIcon inheritViewBox component={RocketSpeedup} sx={{ width: 90, height: 90 }} />
         </Box>
-        
+
         <Typography data-testid="speedup-summary">
           This will speed up the pending transaction by{' '}
           <Typography component={'span'} fontWeight={700}>
@@ -115,7 +115,7 @@ export const SpeedUpModal = ({ open, handleClose, tx, txId, txHash, signerAddres
           </Typography>{' '}
           the original gas parameters with new ones.
         </Typography>
-        
+
         <Box mt={2}>
           {speedUpFee && signerNonce && (
             <GasParams
