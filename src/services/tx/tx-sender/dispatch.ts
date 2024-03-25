@@ -131,49 +131,6 @@ export const dispatchOnChainSigning = async (
   // signed so we don't return it
 }
 
-const executeTransaction = async (
-  safeTx: SafeTransaction,
-  txOptions: TransactionOptions,
-  txId: string,
-  onboard: OnboardAPI,
-  chainId: SafeInfo['chainId'],
-  safeAddress: string,
-  errorEvent: TxEvent,
-): Promise<string> => {
-  const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
-  const eventParams = { txId }
-  const wallet = await assertWalletChain(onboard, chainId)
-
-  const signerNonce = txOptions.nonce ?? (await getUserNonce(wallet.address))
-
-  // Execute the tx
-  let result: TransactionResult | undefined
-  try {
-    result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
-    txDispatch(TxEvent.EXECUTING, eventParams)
-  } catch (error) {
-    txDispatch(errorEvent, { ...eventParams, error: asError(error) })
-    throw error
-  }
-
-  txDispatch(TxEvent.PROCESSING, {
-    ...eventParams,
-    txHash: result.hash,
-    signerAddress: wallet.address,
-    signerNonce,
-  })
-
-  const provider = getWeb3ReadOnly()
-
-  // Asynchronously watch the tx to be mined/validated
-  if (provider) {
-    // don't await as we don't want to block
-    waitForTx(provider, [txId], result.hash, safeAddress, wallet.address, signerNonce)
-  }
-
-  return result.hash
-}
-
 export const dispatchTxSpeedUp = async (
   txOptions: TransactionOptions,
   txId: string,
@@ -227,7 +184,38 @@ export const dispatchTxExecution = async (
   chainId: SafeInfo['chainId'],
   safeAddress: string,
 ): Promise<string> => {
-  return executeTransaction(safeTx, txOptions, txId, onboard, chainId, safeAddress, TxEvent.FAILED)
+  const sdkUnchecked = await getUncheckedSafeSDK(onboard, chainId)
+  const eventParams = { txId }
+  const wallet = await assertWalletChain(onboard, chainId)
+
+  const signerNonce = txOptions.nonce ?? (await getUserNonce(wallet.address))
+
+  // Execute the tx
+  let result: TransactionResult | undefined
+  try {
+    result = await sdkUnchecked.executeTransaction(safeTx, txOptions)
+    txDispatch(TxEvent.EXECUTING, eventParams)
+  } catch (error) {
+    txDispatch(TxEvent.FAILED, { ...eventParams, error: asError(error) })
+    throw error
+  }
+
+  txDispatch(TxEvent.PROCESSING, {
+    ...eventParams,
+    txHash: result.hash,
+    signerAddress: wallet.address,
+    signerNonce,
+  })
+
+  const provider = getWeb3ReadOnly()
+
+  // Asynchronously watch the tx to be mined/validated
+  if (provider) {
+    // don't await as we don't want to block
+    waitForTx(provider, [txId], result.hash, safeAddress, wallet.address, signerNonce)
+  }
+
+  return result.hash
 }
 
 export const dispatchBatchExecution = async (
