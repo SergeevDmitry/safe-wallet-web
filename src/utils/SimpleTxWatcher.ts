@@ -10,6 +10,7 @@ import { type JsonRpcProvider, type TransactionReceipt } from 'ethers'
 export class SimpleTxWatcher {
   private static INSTANCE: SimpleTxWatcher | undefined
   private readonly unsubFunctions: Record<string, () => void>
+  private static readonly REPLACED_BLOCK_THRESHOLD = 2
 
   private constructor() {
     this.unsubFunctions = {}
@@ -49,7 +50,7 @@ export class SimpleTxWatcher {
           // Check if tx was replaced
           const currentNonce = await provider.getTransactionCount(walletAddress)
           if (currentNonce > walletNonce) {
-            if (replacedBlockCount >= 2) {
+            if (replacedBlockCount >= SimpleTxWatcher.REPLACED_BLOCK_THRESHOLD) {
               unsubscribe()
               reject(`Transaction not found. It might have been replaced or cancelled in the connected wallet.`)
             }
