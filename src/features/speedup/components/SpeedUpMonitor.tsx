@@ -30,7 +30,7 @@ export const SpeedUpMonitor = ({ txId, pendingTx, modalTrigger = 'alertBox' }: S
 
   const [smartContract] = useAsync(async () => {
     if (!pendingTx.signerAddress || !web3ReadOnly) return false
-    return await isSmartContract(web3ReadOnly, pendingTx.signerAddress)
+    return isSmartContract(web3ReadOnly, pendingTx.signerAddress)
   }, [pendingTx.signerAddress, web3ReadOnly])
 
   // We only care about processing txs, for everything else we don't show the speed up button

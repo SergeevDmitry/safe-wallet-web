@@ -40,7 +40,7 @@ export const txHistoryListener = (listenerMiddleware: typeof listenerMiddlewareI
           txDispatch(TxEvent.SUCCESS, {
             txId,
             groupKey: pendingTxs[txId].groupKey,
-            txHash: txHash,
+            txHash,
           })
         }
       }

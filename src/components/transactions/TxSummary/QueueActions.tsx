@@ -8,7 +8,7 @@ const QueueActions = ({ tx }: { tx: TransactionSummary }) => {
   const awaitingExecution = isAwaitingExecution(tx.txStatus)
 
   return (
-    <Box my={-1} mr={2} display={'flex'} flexDirection={'row'} alignItems={'center'} justifyContent={'flex-end'}>
+    <Box my={-1} mr={2} display="flex" flexDirection="row" alignItems="center" justifyContent="flex-end">
       {awaitingExecution ? <ExecuteTxButton txSummary={tx} compact /> : <SignTxButton txSummary={tx} compact />}
     </Box>
   )
