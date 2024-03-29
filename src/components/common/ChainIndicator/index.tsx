@@ -21,6 +21,7 @@ type ChainIndicatorProps = {
 const fallbackChainConfig = {
   chainName: 'Unknown chain',
   chainId: '-1',
+  chainLogoUri: '',
   theme: {
     backgroundColor: '#ddd',
     textColor: '#000',
@@ -67,7 +68,7 @@ const ChainIndicator = ({
     >
       {showLogo && (
         <img
-          src={getChainLogo(chainConfig.chainId)}
+          src={(chainConfig as any).chainLogoUri || getChainLogo(chainConfig.chainId)}
           alt={`${chainConfig.chainName} Logo`}
           width={24}
           height={24}
