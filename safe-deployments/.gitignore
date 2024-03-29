@@ -6,7 +6,6 @@ node_modules/
 deployments/
 env/
 .env
-dist/
 bin/
 solc
 coverage/
